@@ -1,0 +1,46 @@
+name: Build Extension Package
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Step 1 - Checkout code
+        uses: actions/checkout@v2
+
+      - name: Step 2 - Setup Java 1.8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+          server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+          settings-path: ${{ github.workspace }} # location for the settings.xml file
+
+      - name: Step 3 - Run mvn build
+        run: mvn clean install -DskipTests
+
+      - name: Step 5 - Target folder content
+        run: |
+          cd target
+          ls -a
+      - name: Step 6 - Move Artifact
+        run: mkdir staging && cp target/*.zip staging
+ 
+      - name: Step 7 - Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Package
+          path: staging/*.zip
+
+      - name: Step 8 - Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: staging/*.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
